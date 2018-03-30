@@ -1,4 +1,4 @@
-package scylla.processor;
+package processor;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -19,23 +19,11 @@ import org.apache.log4j.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import constant.Fields;
+import constant.KafkaConstants;
+
 public class ScyllaProcessor {
     private static String APPLICATION_ID = "Scylla";
-    private static String BOOTSTRAP_SERVER = "localhost:9092";
-    
-    private static String MONITOR_SOURCE_TOPIC = "Monitors-Raw";
-    private static String MONITOR_SINK_TOPIC = "Monitors-Processed";
-    private static String MONITOR_REJECTED_TOPIC = "Monitors-Rejected";
-    private static String MONITOR_RECOVERY_TOPIC = "Monitors-Recovery";
-    
-    private static String URL = "URL";
-    private static String BRAND = "Brand";
-    private static String MODEL = "ModelNumber";
-    private static String SCREEN_SIZE = "ScreenSize";
-    private static String RESOLUTION = "Resolution";
-    private static String RESPONSE_TIME = "ResponseTime";
-    private static String REFRESH_RATE = "RefreshRate";
-    private static String DUPLICATE = "dup";
     
     private static Logger logger = Logger.getLogger(ScyllaProcessor.class);
     private static StreamsBuilder builder;
@@ -64,25 +52,25 @@ public class ScyllaProcessor {
         digester = MessageDigest.getInstance("MD5");
         
         streamsProps.put(StreamsConfig.APPLICATION_ID_CONFIG, APPLICATION_ID);
-        streamsProps.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVER);
+        streamsProps.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConstants.BOOTSTRAP_SERVER);
         streamsProps.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         streamsProps.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
     }
     
     private static void defineTopology() {
         KTable<String, String> feedbackTable = builder
-                .table(MONITOR_SINK_TOPIC, Consumed.with(Serdes.String(),Serdes.String()))
+                .table(KafkaConstants.MONITOR_SINK_TOPIC, Consumed.with(Serdes.String(),Serdes.String()))
                 .mapValues( value -> "");
         
         KTable<String, String> recoveryTable = builder
-                .table(MONITOR_RECOVERY_TOPIC, Consumed.with(Serdes.String(),Serdes.String()))
+                .table(KafkaConstants.MONITOR_RECOVERY_TOPIC, Consumed.with(Serdes.String(),Serdes.String()))
                 .mapValues( value -> "");
         
         KTable<String, String> dedupTable = feedbackTable
-                .join(recoveryTable, (feedbackValue, recoveryValue) -> recoveryValue);
+                .join(recoveryTable, (feedbackValue, recoveryValue) -> recoveryValue == null ? feedbackValue : recoveryValue);
         
         KStream<String, String> monitorsDedup = builder
-                .stream(MONITOR_SOURCE_TOPIC, Consumed.with(Serdes.String(), Serdes.String()))
+                .stream(KafkaConstants.MONITOR_SOURCE_TOPIC, Consumed.with(Serdes.String(), Serdes.String()))
                 .map( (key, value) -> setKeyAsUrlHash(key,value))
                 .leftJoin(dedupTable, (leftValue, rightValue) -> tagDuplicates(leftValue, rightValue))
                 .filter( (key, value) -> deduplicate(value));
@@ -90,8 +78,8 @@ public class ScyllaProcessor {
         KStream<String, String>[] monitorsFiltered = monitorsDedup
                 .branch( (key, value) -> isValidRecord(value));
                 
-        monitorsFiltered[0].to(MONITOR_SINK_TOPIC);
-        monitorsFiltered[1].to(MONITOR_REJECTED_TOPIC);
+        monitorsFiltered[0].to(KafkaConstants.MONITOR_SINK_TOPIC);
+        monitorsFiltered[1].to(KafkaConstants.MONITOR_REJECTED_TOPIC);
     }
     
     private static boolean isValidRecord(String value) {
@@ -99,15 +87,15 @@ public class ScyllaProcessor {
             JsonNode record = objectMapper.readTree(value);
             
             //We want all of these to be present, else reject the record
-            if (record.get(URL).isMissingNode() || record.get(BRAND).isMissingNode() || record.get(MODEL).isMissingNode()) {
+            if (record.get(Fields.URL).isMissingNode() || record.get(Fields.BRAND).isMissingNode() || record.get(Fields.MODEL).isMissingNode()) {
                 return false;
             }
             
             //We want at least 2 out of 4 of these to be present, else reject the record
-            boolean missingScreen = record.get(SCREEN_SIZE).isMissingNode();
-            boolean missingRes = record.get(RESOLUTION).isMissingNode();
-            boolean missingTime = record.get(RESPONSE_TIME).isMissingNode();
-            boolean missingRate = record.get(REFRESH_RATE).isMissingNode();
+            boolean missingScreen = record.get(Fields.SCREEN_SIZE).isMissingNode();
+            boolean missingRes = record.get(Fields.RESOLUTION).isMissingNode();
+            boolean missingTime = record.get(Fields.RESPONSE_TIME).isMissingNode();
+            boolean missingRate = record.get(Fields.REFRESH_RATE).isMissingNode();
             
             if (missingScreen && missingRes && missingTime) {
                 return false;
@@ -129,7 +117,7 @@ public class ScyllaProcessor {
         try {
             JsonNode record = objectMapper.readTree(value);
             
-            String hashedUrl = digester.digest(record.get(URL).asText().getBytes()).toString();
+            String hashedUrl = digester.digest(record.get(Fields.URL).asText().getBytes()).toString();
             
             return new KeyValue<String,String>(hashedUrl,value);
         } catch (Exception e) {
@@ -142,11 +130,11 @@ public class ScyllaProcessor {
         if (tableValue == null) {
             return streamValue;
         }
-        return DUPLICATE;
+        return Fields.DUPLICATE;
     }
     
     private static boolean deduplicate(String value) {
-        if (StringUtils.equalsIgnoreCase(value, DUPLICATE)) {
+        if (StringUtils.equalsIgnoreCase(value, Fields.DUPLICATE)) {
             return false;
         }
         return true;
