@@ -1,0 +1,144 @@
+//Post 1 Input
+key=null
+{
+"Category":"Monitor",
+"FoundEpoch":"45629034585",
+"URL":"https://www.newegg.ca/Product/Product.aspx?Item=N82E16824236174",
+"Brand":"Acer",
+"ModelNumber":"PH-55621",
+"Price":"$150.40",
+"PanelType":"IPS panel",
+"ScreenSize":"22in",
+"Resolution":"1920 x 1080",
+"ResponseTime":"5ms",
+"RefreshRate":"60 hertz",
+"VGA":"2",
+"DVI":"yes",
+"HDMI":"no",
+"DisplayPort":"yes, 2",
+"AdaptiveSync":"NVIDIA G-Sync supported",
+"VesaMount":"100mm x 100mm"
+}
+//Post 1 Output
+key="ef4de3eab81baad9561f00c5d08886c1"
+{
+"Category":"Monitor",
+"FoundEpoch":"45629034585",
+"URL":"https://www.newegg.ca/Product/Product.aspx?Item=N82E16824236174",
+"Brand":"Acer",
+"ModelNumber":"PH-55621",
+"Price":"$150.40",
+"PanelType":"IPS",
+"ScreenSize":"22",
+"Resolution":"1920x1080",
+"ResponseTime":"5",
+"RefreshRate":"60",
+"VGA":"2",
+"DVI":"Yes",
+"HDMI":"No",
+"DisplayPort":"2",
+"AdaptiveSync":"G-Sync",
+"VesaMount":"100x100"
+}
+
+//Post 2 Input
+key=null
+{
+"RandomField":"RandomValue",
+"Category":"Monitor",
+"FoundEpoch":"45629032585",
+"URL":"https://www.newegg.ca/Product/Product.aspx?Item=N82E16824236797",
+"Brand":"ASUS",
+"ModelNumber":"PG278QR",
+"Price":"$849.99",
+"PanelType":"AH-IPS",
+"ScreenSize":"27.5\"",
+"Resolution":"2560 x 1440",
+"ResponseTime":"1ms(GTG)",
+"RefreshRate":"144 Hz (2D) / 165 Hz (2D overclock) / 120 Hz (3D)",
+"HDMI":"no",
+"DisplayPort":"1",
+"AdaptiveSync":"FreeSync",
+"VesaMount":"100 x 100"
+}
+//Post 2 Output
+key="d97cc1708ed0b02ba5d1114b4e35de38"
+{
+"Category":"Monitor",
+"FoundEpoch":"45629034585",
+"URL":"https://www.newegg.ca/Product/Product.aspx?Item=N82E16824236797",
+"Brand":"Asus",
+"ModelNumber":"PG278QR",
+"Price":"$849.99",
+"PanelType":"AH-IPS",
+"ScreenSize":"27.5",
+"Resolution":"2560x1440",
+"ResponseTime":"1",
+"RefreshRate":"144",
+"HDMI":"No",
+"DisplayPort":"1",
+"AdaptiveSync":"FreeSync",
+"VesaMount":"100x100"
+}
+
+//Missing required field (URL)
+key=null
+{
+"Category":"Monitor",
+"FoundEpoch":"45629034585",
+"Brand":"Acer",
+"ModelNumber":"PH-55621",
+"Price":"$150.40",
+"PanelType":"IPS panel",
+"ScreenSize":"22in",
+"Resolution":"1920 x 1080",
+"ResponseTime":"5ms",
+"RefreshRate":"60 hertz",
+"VGA":"2",
+"DVI":"yes",
+"HDMI":"no",
+"DisplayPort":"yes, 2",
+"AdaptiveSync":"NVIDIA G-Sync supported",
+"VesaMount":"100mm x 100mm"
+}
+
+//Missing enough important fields
+key=null
+{
+"Category":"Monitor",
+"URL":"https://www.newegg.ca/Product/Product.aspx?Item=N82E16824009869",
+"FoundEpoch":"4563412144585",
+"Brand":"Acer",
+"ModelNumber":"Predator X34",
+"Price":"$1399.99",
+"PanelType":"UW-QHD",
+"ScreenSize":"28in",
+"Resolution":"Unresolvable",
+"ResponseTime":"Unresolvable",
+"RefreshRate":"Unresolvable",
+"HDMI":"no",
+"DisplayPort":"2",
+"AdaptiveSync":"GSync",
+"VesaMount":"200mm x 100mm"
+}
+
+//Duplicate
+key=null
+{
+"Category":"Monitor",
+"URL":"https://www.newegg.ca/Product/Product.aspx?Item=N82E16824014378",
+"FoundEpoch":"4563412144585",
+"Brand":"Acer",
+"ModelNumber":"Predator X34",
+"Price":"$1399.99",
+"PanelType":"UW-QHD",
+"ScreenSize":"28in",
+"Resolution":"1920 x 1080",
+"ResponseTime":"5ms",
+"RefreshRate":"60 hertz",
+"HDMI":"no",
+"DisplayPort":"2",
+"AdaptiveSync":"GSync",
+"VesaMount":"200mm x 100mm"
+}
+
