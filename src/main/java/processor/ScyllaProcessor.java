@@ -19,15 +19,14 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
-import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import constant.Fields;
-import constant.Config;
+import config.KafkaConfig;
+import config.Fields;
 
 
 public class ScyllaProcessor {
@@ -65,8 +64,6 @@ public class ScyllaProcessor {
     }
     
     protected static void initializeProperties() throws NoSuchAlgorithmException {
-        BasicConfigurator.configure();
-        
         builder = new StreamsBuilder();
         dedupBuilder = new StreamsBuilder();
         objectMapper = new ObjectMapper();
@@ -74,27 +71,27 @@ public class ScyllaProcessor {
         
         streamsProps = new Properties();
         
-        streamsProps.put(StreamsConfig.APPLICATION_ID_CONFIG, Config.SCYLLA_GROUP_ID);
-        streamsProps.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, Config.BOOTSTRAP_SERVER);
+        streamsProps.put(StreamsConfig.APPLICATION_ID_CONFIG, KafkaConfig.SCYLLA_GROUP_ID);
+        streamsProps.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConfig.BOOTSTRAP_SERVER);
         streamsProps.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         streamsProps.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         
         dedupProps = new Properties();
         
-        dedupProps.put(StreamsConfig.APPLICATION_ID_CONFIG, Config.DEDUP_GROUP_ID);
-        dedupProps.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, Config.BOOTSTRAP_SERVER);
+        dedupProps.put(StreamsConfig.APPLICATION_ID_CONFIG, KafkaConfig.DEDUP_GROUP_ID);
+        dedupProps.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConfig.BOOTSTRAP_SERVER);
         dedupProps.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         dedupProps.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
     }
     
     private static void defineStream() {
         KStream<String, String>[] monitorsFiltered = builder
-                .stream(Config.MONITOR_SOURCE_TOPIC, Consumed.with(Serdes.String(), Serdes.String()))
+                .stream(KafkaConfig.MONITOR_SOURCE_TOPIC, Consumed.with(Serdes.String(), Serdes.String()))
                 .branch( (key, value) -> isValidRecord(value),
                         (key, value) -> true);
         
         KTable<String, String> dedupTable = builder
-                .table(Config.MONITOR_DEDUP_TOPIC, Consumed.with(Serdes.String(), Serdes.String()))
+                .table(KafkaConfig.MONITOR_DEDUP_TOPIC, Consumed.with(Serdes.String(), Serdes.String()))
                 .mapValues( (value) -> "");
         
         KStream<String, String> monitorsDedup = monitorsFiltered[0]
@@ -109,12 +106,12 @@ public class ScyllaProcessor {
                 .branch( (key, value) -> isValidNormalization(value),
                          (key, value) -> true);
         
-        monitorsValidated[0].to(Config.MONITOR_SINK_TOPIC);
+        monitorsValidated[0].to(KafkaConfig.MONITOR_SINK_TOPIC);
         
-        monitorsValidated[1].to(Config.MONITOR_REJECTED_TOPIC);
-        monitorsFiltered[1].to(Config.MONITOR_REJECTED_TOPIC);
+        monitorsValidated[1].to(KafkaConfig.MONITOR_REJECTED_TOPIC);
+        monitorsFiltered[1].to(KafkaConfig.MONITOR_REJECTED_TOPIC);
         
-        dedupBuilder.stream(Config.MONITOR_SINK_TOPIC).to(Config.MONITOR_DEDUP_TOPIC);
+        dedupBuilder.stream(KafkaConfig.MONITOR_SINK_TOPIC).to(KafkaConfig.MONITOR_DEDUP_TOPIC);
     }
     
     protected static boolean isValidRecord(String value) {
@@ -211,50 +208,57 @@ public class ScyllaProcessor {
         return null;
     }
     
-    //TODO: Simplify this method somehow
     private static String normalizeField(Entry<String,String> fieldEntry) {
-        String matchedValue = "";
         Fields fields = new Fields();
         HashMap<String, String[]> possibleValues = fields.getFieldValues().get(fieldEntry.getKey());
         
         if (possibleValues != null) {
-        //Try and match the value of the field to a possibleValue
-            for (String possibleValue : possibleValues.keySet()) {
-                boolean foundTaggedMatch = false;
+            return normalizeValue(fieldEntry, possibleValues);
+        }
+        return "";
+    }
+    
+    private static String normalizeValue(Entry<String,String> fieldEntry, HashMap<String, String[]> possibleValues) {
+        String bestValue = "";
+        boolean foundTaggedMatch = false;
+        for (String possibleValue : possibleValues.keySet()) {
+            //If we've tagged this possibleValue, pull a value out of the field instead of matching to a predetermined value
+            if (StringUtils.equalsIgnoreCase(possibleValue, Fields.FIND_TAG)) {
+                String foundValue = findRawValue(fieldEntry, possibleValue, possibleValues);
                 
-                //If we need to pull the value out of the field string
-                if (StringUtils.equalsIgnoreCase(possibleValue, Fields.FIND_TAG)) {
-                    String match = "";
-                    Matcher patternMatcher;
-                    try {
-                        patternMatcher = Pattern.compile(possibleValues.get(possibleValue)[0]).matcher(fieldEntry.getValue());
-                        
-                        if (patternMatcher.matches()) {
-                            match = patternMatcher.group(1);
-                        }
-                    } catch (IllegalStateException e) {
-                        logger.error("Unable to match value: "+possibleValues.get(possibleValue)[0]+" in "+fieldEntry.getValue(), e);
-                    }
+                if (StringUtils.isNotEmpty(foundValue)) {
+                    bestValue = foundValue;
+                    foundTaggedMatch = true;
+                }
+                
+            } else if (!foundTaggedMatch) {
+                for (String regex : possibleValues.get(possibleValue)) {
+                    Matcher valueMatcher = Pattern.compile("(?i)"+regex).matcher(fieldEntry.getValue());
                     
-                    //If we find a match, capture it and give it priority over other possibleValues
-                    if (StringUtils.isNotEmpty(match)) {
-                        matchedValue = match;
-                        foundTaggedMatch = true;
-                    }
-                    
-                //If we haven't found a tagged match
-                } else if (!foundTaggedMatch) {
-                    for (String regex : possibleValues.get(possibleValue)) {
-                        Matcher valueMatcher = Pattern.compile("(?i)"+regex).matcher(fieldEntry.getValue());
-                        
-                        //If we find a possibleValue, and it is longer than the current matchedValue, capture it
-                        if (valueMatcher.find() && (possibleValue.length() > matchedValue.length())) {
-                            matchedValue = possibleValue;
-                        }
+                    if (valueMatcher.find() && (possibleValue.length() > bestValue.length())) {
+                        bestValue = possibleValue;
                     }
                 }
             }
         }
-        return matchedValue;
+        return bestValue;
+    }
+    
+    private static String findRawValue(Entry<String,String> fieldEntry, String possibleValue, HashMap<String, String[]> possibleValues) {
+        String rawValue = "";
+        Matcher patternMatcher;
+        try {
+            String[] possibleMatchers = possibleValues.get(possibleValue);
+            for (String matcher : possibleMatchers) {
+                patternMatcher = Pattern.compile("(?i)"+matcher).matcher(fieldEntry.getValue());
+                
+                if (patternMatcher.matches()) {
+                    rawValue = patternMatcher.group(1);
+                }
+            }
+        } catch (IllegalStateException e) {
+            logger.error("Unable to match value: "+possibleValues.get(possibleValue)[0]+" in "+fieldEntry.getValue(), e);
+        }
+        return rawValue;
     }
 }

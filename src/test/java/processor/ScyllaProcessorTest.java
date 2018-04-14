@@ -1,21 +1,23 @@
 package processor;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import constant.Fields;
+import config.Fields;
 
 public class ScyllaProcessorTest {
     
@@ -23,12 +25,12 @@ public class ScyllaProcessorTest {
             + "\"URL\":\"https://www.newegg.ca/Product/Product.aspx?Item=N82E16824236174\","
             + "\"Brand\":\"Acer\",\"ModelNumber\":\"PH-55621\",\"Price\":\"$150.40\","
             + "\"PanelType\":\"IPS panel\",\"ScreenSize\":\"22in\",\"Resolution\":\"1920 x 1080\","
-            + "\"ResponseTime\":\"5ms\",\"RefreshRate\":\"60 hertz\",\"VGA\":\"2\"," 
+            + "\"ResponseTime\":\"5ms\",\"RefreshRate\":\"60 hertz\",\"VGA\":\"1x VGA 3.4\"," 
             + "\"DVI\":\"yes\",\"HDMI\":\"no\",\"DisplayPort\":\"yes, 2\",\"AdaptiveSync\":\"NVIDIA G-Sync supported\","
             + "\"VesaMount\":\"100mm x 100mm\"}";
     
-    @Before
-    public void setup() throws NoSuchAlgorithmException {
+    @BeforeAll
+    public static void setup() throws NoSuchAlgorithmException {
         ScyllaProcessor.initializeProperties();
     }
     
@@ -152,7 +154,7 @@ public class ScyllaProcessorTest {
         expectedMap.put(Fields.RESOLUTION,"1920x1080");
         expectedMap.put(Fields.RESPONSE_TIME,"5");
         expectedMap.put(Fields.REFRESH_RATE,"60");
-        expectedMap.put(Fields.VGA,"2");
+        expectedMap.put(Fields.VGA,"1");
         expectedMap.put(Fields.DVI,"Yes");
         expectedMap.put(Fields.HDMI,"No");
         expectedMap.put(Fields.DISPLAY_PORT,"2");
