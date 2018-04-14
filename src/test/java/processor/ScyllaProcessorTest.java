@@ -141,7 +141,7 @@ public class ScyllaProcessorTest {
     }
     
     @Test
-    public void testNormalizeValues() throws JsonParseException, JsonMappingException, IOException {
+    public void testNormalizeFields() throws JsonParseException, JsonMappingException, IOException {
         Map<String,String> expectedMap = new HashMap<String,String>();
         expectedMap.put(Fields.CATEGORY,Fields.MONITOR);
         expectedMap.put(Fields.FOUNDTIME,"45629034585");
@@ -161,7 +161,7 @@ public class ScyllaProcessorTest {
         expectedMap.put(Fields.ADAPTIVE_SYNC,"G-Sync");
         expectedMap.put(Fields.VESA,"100x100");
         
-        String result = ScyllaProcessor.normalizeValues(validRecordA);
+        String result = ScyllaProcessor.normalizeFields(validRecordA);
         
         ObjectMapper objectMapper = new ObjectMapper();
         Map<String, String> resultMap = objectMapper.readValue(result, new TypeReference<Map<String,String>>(){});

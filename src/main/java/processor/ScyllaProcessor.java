@@ -100,7 +100,7 @@ public class ScyllaProcessor {
                 .filter( (key, value) -> deduplicate(value));
         
         KStream<String,String> monitorsNormalized = monitorsFiltered[0]
-                .mapValues( (value) -> normalizeValues(value));
+                .mapValues( (value) -> normalizeFields(value));
                 
         KStream<String, String>[] monitorsValidated = monitorsNormalized
                 .branch( (key, value) -> isValidNormalization(value),
@@ -182,7 +182,7 @@ public class ScyllaProcessor {
         return true;
     }
     
-    protected static String normalizeValues(String value) {
+    protected static String normalizeFields(String value) {
         try {
             Map<String,String> normalizedValues = new HashMap<String,String>();
             
