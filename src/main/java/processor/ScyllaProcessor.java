@@ -4,6 +4,7 @@ import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -24,94 +25,67 @@ import org.apache.log4j.Logger;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import config.KafkaConfig;
-import config.Fields;
+import fields.Fields;
 
 
 public class ScyllaProcessor {
     
     private static Logger logger = Logger.getLogger(ScyllaProcessor.class);
-    private static StreamsBuilder builder;
-    private static StreamsBuilder dedupBuilder;
-    private static ObjectMapper objectMapper;
-    private static MessageDigest digester;
+    private static StreamsBuilder builder = new StreamsBuilder();
+    private static ObjectMapper objectMapper = new ObjectMapper();
     private static Properties streamsProps;
-    private static Properties dedupProps;
+    
+    private static Fields fields = new Fields();
     
     public static void main(String[] args) throws NoSuchAlgorithmException {
         initializeProperties();
         defineStream();
         
         KafkaStreams streams = new KafkaStreams(builder.build(), streamsProps);
-        KafkaStreams dedupStreams = new KafkaStreams(dedupBuilder.build(), dedupProps);
         Runtime.getRuntime().addShutdownHook(new Thread(streams::close));
-        Runtime.getRuntime().addShutdownHook(new Thread(dedupStreams::close));
         try {
             streams.start();
-            dedupStreams.start();
             
             Thread.sleep(Long.MAX_VALUE);
         } catch (Exception e) {
             logger.error("An error occured while executing streams application",e);
         } finally {
             streams.close();
-            dedupStreams.close();
-            
             streams.cleanUp();
-            dedupStreams.cleanUp();
         }
     }
     
     protected static void initializeProperties() throws NoSuchAlgorithmException {
-        builder = new StreamsBuilder();
-        dedupBuilder = new StreamsBuilder();
-        objectMapper = new ObjectMapper();
-        digester = MessageDigest.getInstance("MD5");
-        
         streamsProps = new Properties();
         
         streamsProps.put(StreamsConfig.APPLICATION_ID_CONFIG, KafkaConfig.SCYLLA_GROUP_ID);
         streamsProps.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConfig.BOOTSTRAP_SERVER);
         streamsProps.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         streamsProps.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
-        
-        dedupProps = new Properties();
-        
-        dedupProps.put(StreamsConfig.APPLICATION_ID_CONFIG, KafkaConfig.DEDUP_GROUP_ID);
-        dedupProps.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConfig.BOOTSTRAP_SERVER);
-        dedupProps.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
-        dedupProps.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
     }
     
     private static void defineStream() {
         KStream<String, String>[] monitorsFiltered = builder
-                .stream(KafkaConfig.MONITOR_SOURCE_TOPIC, Consumed.with(Serdes.String(), Serdes.String()))
+                .stream(KafkaConfig.DISPLAY_SOURCE_TOPIC, Consumed.with(Serdes.String(), Serdes.String()))
                 .branch( (key, value) -> isValidRecord(value),
                         (key, value) -> true);
         
-        KTable<String, String> dedupTable = builder
-                .table(KafkaConfig.MONITOR_DEDUP_TOPIC, Consumed.with(Serdes.String(), Serdes.String()))
-                .mapValues( (value) -> "");
-        
-        KStream<String, String> monitorsDedup = monitorsFiltered[0]
+        KStream<String,String>[] monitorsNormalized = monitorsFiltered[0]
                 .map( (key, value) -> setKeyAsUrlHash(key,value))
-                .leftJoin(dedupTable, (leftValue, rightValue) -> tagDuplicates(leftValue, rightValue))
-                .filter( (key, value) -> deduplicate(value));
-        
-        KStream<String,String> monitorsNormalized = monitorsFiltered[0]
-                .mapValues( (value) -> normalizeFields(value));
-                
-        KStream<String, String>[] monitorsValidated = monitorsNormalized
+                .mapValues( (value) -> normalizeFields(value))
                 .branch( (key, value) -> isValidNormalization(value),
                          (key, value) -> true);
+                
+        KStream<String, String> monitorsFinalized = monitorsNormalized[0]
+                .mapValues( (value) -> explodeStructure(value));
         
-        monitorsValidated[0].to(KafkaConfig.MONITOR_SINK_TOPIC);
+        monitorsFinalized.to(KafkaConfig.DISPLAY_SINK_TOPIC);
         
-        monitorsValidated[1].to(KafkaConfig.MONITOR_REJECTED_TOPIC);
-        monitorsFiltered[1].to(KafkaConfig.MONITOR_REJECTED_TOPIC);
-        
-        dedupBuilder.stream(KafkaConfig.MONITOR_SINK_TOPIC).to(KafkaConfig.MONITOR_DEDUP_TOPIC);
+        monitorsFiltered[1].to(KafkaConfig.DISPLAY_REJECTED_TOPIC);
+        monitorsNormalized[1].to(KafkaConfig.DISPLAY_REJECTED_TOPIC);
     }
     
     protected static boolean isValidRecord(String value) {
@@ -157,6 +131,7 @@ public class ScyllaProcessor {
     
     protected static KeyValue<String,String> setKeyAsUrlHash(String key, String value) {
         try {
+            MessageDigest digester = MessageDigest.getInstance("MD5");
             JsonNode record = objectMapper.readTree(value);
             
             String hashedUrl = String.format("%032x", new BigInteger(1, digester.digest(record.get(Fields.URL).asText().getBytes())));
@@ -166,20 +141,6 @@ public class ScyllaProcessor {
             logger.error("An error occured while hashing Url: "+value,e);
         }
         return null;
-    }
-    
-    protected static String tagDuplicates(String streamValue, String tableValue) {
-        if (tableValue == null) {
-            return streamValue;
-        }
-        return Fields.DUPLICATE;
-    }
-    
-    protected static boolean deduplicate(String value) {
-        if (StringUtils.equalsIgnoreCase(value, Fields.DUPLICATE)) {
-            return false;
-        }
-        return true;
     }
     
     protected static String normalizeFields(String value) {
@@ -209,7 +170,6 @@ public class ScyllaProcessor {
     }
     
     private static String normalizeField(Entry<String,String> fieldEntry) {
-        Fields fields = new Fields();
         HashMap<String, String[]> possibleValues = fields.getFieldValues().get(fieldEntry.getKey());
         
         if (possibleValues != null) {
@@ -222,7 +182,7 @@ public class ScyllaProcessor {
         String bestValue = "";
         boolean foundTaggedMatch = false;
         for (String possibleValue : possibleValues.keySet()) {
-            //If we've tagged this possibleValue, pull a value out of the field instead of matching to a predetermined value
+            //If we've tagged this possibleValue, find a raw value in the field instead of matching to a predetermined value
             if (StringUtils.equalsIgnoreCase(possibleValue, Fields.FIND_TAG)) {
                 String foundValue = findRawValue(fieldEntry, possibleValue, possibleValues);
                 
@@ -250,15 +210,43 @@ public class ScyllaProcessor {
         try {
             String[] possibleMatchers = possibleValues.get(possibleValue);
             for (String matcher : possibleMatchers) {
+                String matcherValue = "";
                 patternMatcher = Pattern.compile("(?i)"+matcher).matcher(fieldEntry.getValue());
                 
                 if (patternMatcher.matches()) {
-                    rawValue = patternMatcher.group(1);
+                    for (int i = 1; i <= patternMatcher.groupCount(); i++) {
+                        matcherValue += " " + patternMatcher.group(i);
+                    }
+                }
+                if (StringUtils.isNotEmpty(matcherValue)) {
+                    rawValue = matcherValue;
                 }
             }
         } catch (IllegalStateException e) {
             logger.error("Unable to match value: "+possibleValues.get(possibleValue)[0]+" in "+fieldEntry.getValue(), e);
         }
-        return rawValue;
+        return rawValue.trim();
+    }
+    
+    private static String explodeStructure(String value) {
+        try {
+            JsonNode record = objectMapper.readTree(value);
+            
+            for (Entry<String, List<String>> fieldCategory : fields.CATEGORIZED_FIELDS.entrySet()) {
+                ObjectNode explodedNode = objectMapper.createObjectNode();
+                
+                for (String field : fieldCategory.getValue()) {
+                    if (record.has(field)) {
+                        explodedNode.put(field, record.get(field).asText());
+                        ((ObjectNode) record).remove(field);
+                    }
+                }
+                ((ObjectNode) record).set(fieldCategory.getKey(), explodedNode);
+            }
+            return objectMapper.writeValueAsString(record);
+        } catch (Exception e) {
+            logger.error("Unexpected error occured while exploding structure.", e);
+        }
+        return null;
     }
 }

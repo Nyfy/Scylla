@@ -17,17 +17,33 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import config.Fields;
+import fields.Fields;
 
 public class ScyllaProcessorTest {
     
-    private String validRecordA = "{\"Category\":\"Monitor\",\"FoundEpoch\":\"45629034585\","
-            + "\"URL\":\"https://www.newegg.ca/Product/Product.aspx?Item=N82E16824236174\","
-            + "\"Brand\":\"Acer\",\"ModelNumber\":\"PH-55621\",\"Price\":\"$150.40\","
-            + "\"PanelType\":\"IPS panel\",\"ScreenSize\":\"22in\",\"Resolution\":\"1920 x 1080\","
-            + "\"ResponseTime\":\"5ms\",\"RefreshRate\":\"60 hertz\",\"VGA\":\"1x VGA 3.4\"," 
-            + "\"DVI\":\"yes\",\"HDMI\":\"no\",\"DisplayPort\":\"yes, 2\",\"AdaptiveSync\":\"NVIDIA G-Sync supported\","
-            + "\"VesaMount\":\"100mm x 100mm\"}";
+    private String simpleRecord = "{\"Category\":\"Display\",\"Brand\":\"mimo\",\"ScreenSize\":\"27\\\"\","
+            + "\"Resolution\":\"1600 x 1200\",\"ResponseTime\":\"14ms\",\"RefreshRate\":\"144 hertz\","
+            + "\"PanelType\":\"mva\",\"AdaptiveSync\":\"AMD Free-Sync\",\"VGA\":\"1\",\"DVI\":\"yes\","
+            + "\"HDMI\":\"3\",\"DisplayPort\":\"no\",\"VesaMount\":\"yes\",\"FoundTime\":\"542143542\","
+            + "\"URL\":\"https://www.newegg.ca/Product/Product.aspx?Item=N82E16824236174\",\"ModelNumber\":\"PH-55621\","
+            + "\"AspectRatio\":\"16:9\",\"PixelPitch\":\"~0.233mm,0.0233cm,~0.0008ft\",\"PixelDensity\":\"109ppi,42ppcm\","
+            + "\"Brightness\":\"400cd/m2\",\"RemovableStand\":\"yes\",\"HeightAdjustment\":\"no\",\"PortraitPivot\":\"yes\","
+            + "\"SwivelAdjustment\":\"yes\",\"LeftSwivel\":\"-15 degrees\",\"RightSwivel\":\"+15 degrees\","
+            + "\"TiltAdjustment\":\"no\",\"ForwardTilt\":\"15*\",\"BackwardTilt\":\"45deg\",\"Curvature\":\"curved\","
+            + "\"DisplayArea\":\"90.47%\",\"Price\":\"$150.40\"}";
+    
+    private String complexRecord = "{\"Category\":\"Display\",\"Brand\":\"geek buying\",\"ScreenSize\":\"24.3 inches\","
+            + "\"Resolution\":\"1920 x 1200\",\"ResponseTime\":\"4 ms\",\"RefreshRate\":\"80 hz - 144 hz\","
+            + "\"PanelType\":\"va\",\"AdaptiveSync\":\"G sync\",\"VGA\":\"1\",\"DVI\":\"yes\","
+            + "\"HDMI\":\"3\",\"DisplayPort\":\"no\",\"VesaMount\":\"yes 100mm x 150mm\",\"FoundTime\":\"542143542\","
+            + "\"URL\":\"https://www.newegg.ca/Product/Product.aspx?Item=N82E16824236174\",\"ModelNumber\":\"PH-55621\","
+            + "\"AspectRatio\":\"25:9\",\"PixelPitch\":\"~1.5890mm,0.0233cm,~0.0008ft\",\"PixelDensity\":\"109ppi,42ppcm\","
+            + "\"Brightness\":\"455.50cd/m2\",\"RemovableStand\":\"yes\",\"HeightAdjustment\":\"true ~110mm,200cm,~5m\",\"PortraitPivot\":\"yes\","
+            + "\"SwivelAdjustment\":\"yes\",\"LeftSwivel\":\"-15 degrees\",\"RightSwivel\":\"+15 degrees\","
+            + "\"TiltAdjustment\":\"no\",\"ForwardTilt\":\"15*\",\"BackwardTilt\":\"45deg\",\"Curvature\":\"340cm\","
+            + "\"DisplayArea\":\"90.47%\",\"Price\":\"$150.40\"}";
+
+
     
     @BeforeAll
     public static void setup() throws NoSuchAlgorithmException {
@@ -62,7 +78,7 @@ public class ScyllaProcessorTest {
                 + "\"DVI\":\"yes\",\"HDMI\":\"no\",\"DisplayPort\":\"yes, 2\",\"AdaptiveSync\":\"NVIDIA G-Sync supported\","
                 + "\"VesaMount\":\"100mm x 100mm\"}";
         
-        assertTrue(ScyllaProcessor.isValidRecord(validRecordA));
+        assertTrue(ScyllaProcessor.isValidRecord(simpleRecord));
         assertFalse(ScyllaProcessor.isValidRecord(invalidRecordA));
         assertFalse(ScyllaProcessor.isValidRecord(invalidRecordB));
         assertFalse(ScyllaProcessor.isValidRecord(invalidRecordC));
@@ -71,7 +87,7 @@ public class ScyllaProcessorTest {
     @Test
     public void testIsValidNormalization() {
         //Has 2/4 important fields
-        String validRecordB = "{\"Category\":\"Monitor\",\"FoundEpoch\":\"45629034585\","
+        String validRecordA = "{\"Category\":\"Monitor\",\"FoundEpoch\":\"45629034585\","
                 + "\"URL\":\"https://www.newegg.ca/Product/Product.aspx?Item=N82E16824236174\","
                 + "\"Brand\":\"Acer\",\"ModelNumber\":\"PH-55621\",\"Price\":\"$150.40\","
                 + "\"PanelType\":\"IPS panel\",\"ResponseTime\":\"5ms\",\"RefreshRate\":\"60 hertz\",\"VGA\":\"2\"," 
@@ -98,7 +114,7 @@ public class ScyllaProcessorTest {
         String invalidRecordC = "{\"Category\":\"Monitor\",\"FoundEpoch\":\"45629034585\","
                 + "\"URL\":\"https://www.newegg.ca/Product/Product.aspx?Item=N82E16824236174\","
                 + "\"Brand\":\"Acer\",\"ModelNumber\":\"PH-55621\",\"Price\":\"$150.40\","
-                + "\"PanelType\":\"IPS panel\",\"\"ResponseTime\":\"5ms\",\"VGA\":\"2\"," 
+                + "\"PanelType\":\"IPS panel\",\"\"<-INVALIDQUOTE-ResponseTime\":\"5ms\",\"VGA\":\"2\"," 
                 + "\"DVI\":\"yes\",\"HDMI\":\"no\",\"DisplayPort\":\"yes, 2\",\"AdaptiveSync\":\"NVIDIA G-Sync supported\","
                 + "\"VesaMount\":\"100mm x 100mm\"}";
         
@@ -110,8 +126,8 @@ public class ScyllaProcessorTest {
                 + "\"DVI\":\"yes\",\"HDMI\":\"no\",\"DisplayPort\":\"yes, 2\",\"AdaptiveSync\":\"NVIDIA G-Sync supported\","
                 + "\"VesaMount\":\"100mm x 100mm\"}";
         
+        assertTrue(ScyllaProcessor.isValidNormalization(simpleRecord));
         assertTrue(ScyllaProcessor.isValidNormalization(validRecordA));
-        assertTrue(ScyllaProcessor.isValidNormalization(validRecordB));
         assertFalse(ScyllaProcessor.isValidNormalization(invalidRecordA));
         assertFalse(ScyllaProcessor.isValidNormalization(invalidRecordB));
         assertFalse(ScyllaProcessor.isValidNormalization(invalidRecordC));
@@ -129,39 +145,90 @@ public class ScyllaProcessorTest {
     }
     
     @Test
-    public void testTagDuplicates() {
-        assertEquals(ScyllaProcessor.tagDuplicates(validRecordA, null),validRecordA);
-        assertEquals(ScyllaProcessor.tagDuplicates(validRecordA, ""),Fields.DUPLICATE);
-    }
-    
-    @Test
-    public void testDeduplicate() {
-        assertFalse(ScyllaProcessor.deduplicate(Fields.DUPLICATE));
-        assertTrue(ScyllaProcessor.deduplicate(validRecordA));
-    }
-    
-    @Test
-    public void testNormalizeFields() throws JsonParseException, JsonMappingException, IOException {
+    public void testNormalizeSimpleFields() throws JsonParseException, JsonMappingException, IOException {
         Map<String,String> expectedMap = new HashMap<String,String>();
-        expectedMap.put(Fields.CATEGORY,Fields.MONITOR);
-        expectedMap.put(Fields.FOUNDTIME,"45629034585");
-        expectedMap.put(Fields.URL,"https://www.newegg.ca/Product/Product.aspx?Item=N82E16824236174");
-        expectedMap.put(Fields.BRAND,"Acer America");
-        expectedMap.put(Fields.MODEL,"PH-55621");
-        expectedMap.put(Fields.PRICE,"$150.40");
-        expectedMap.put(Fields.PANEL_TYPE,"IPS");
-        expectedMap.put(Fields.SCREEN_SIZE,"22");
-        expectedMap.put(Fields.RESOLUTION,"1920x1080");
-        expectedMap.put(Fields.RESPONSE_TIME,"5");
-        expectedMap.put(Fields.REFRESH_RATE,"60");
+        expectedMap.put(Fields.CATEGORY,Fields.DISPLAY);
+        expectedMap.put(Fields.BRAND,"MIMO");
+        expectedMap.put(Fields.SCREEN_SIZE,"27");
+        expectedMap.put(Fields.RESOLUTION,"1600x1200");
+        expectedMap.put(Fields.RESPONSE_TIME,"14");
+        expectedMap.put(Fields.REFRESH_RATE,"144");
+        expectedMap.put(Fields.PANEL_TYPE,"MVA");
+        expectedMap.put(Fields.ADAPTIVE_SYNC,"FreeSync");
         expectedMap.put(Fields.VGA,"1");
-        expectedMap.put(Fields.DVI,"Yes");
-        expectedMap.put(Fields.HDMI,"No");
-        expectedMap.put(Fields.DISPLAY_PORT,"2");
-        expectedMap.put(Fields.ADAPTIVE_SYNC,"G-Sync");
-        expectedMap.put(Fields.VESA,"100x100");
+        expectedMap.put(Fields.DVI,"true");
+        expectedMap.put(Fields.HDMI,"3");
+        expectedMap.put(Fields.DISPLAY_PORT,"false");
+        expectedMap.put(Fields.VESA_MOUNT,"true");
+        expectedMap.put(Fields.FOUNDTIME,"542143542");
+        expectedMap.put(Fields.URL,"https://www.newegg.ca/Product/Product.aspx?Item=N82E16824236174");
+        expectedMap.put(Fields.MODEL,"PH-55621");
+        expectedMap.put(Fields.ASPECT_RATIO, "16:9");
+        expectedMap.put(Fields.PIXEL_PITCH, "0.233");
+        expectedMap.put(Fields.PIXEL_DENSITY, "109");
+        expectedMap.put(Fields.BRIGHTNESS, "400");
+        expectedMap.put(Fields.REMOVABLE_STAND, "true");
+        expectedMap.put(Fields.HEIGHT_ADJUSTMENT, "false");
+        expectedMap.put(Fields.PORTRAIT_PIVOT, "true");
+        expectedMap.put(Fields.SWIVEL_ADJUSTMENT, "true");
+        expectedMap.put(Fields.LEFT_SWIVEL, "15");
+        expectedMap.put(Fields.RIGHT_SWIVEL, "15");
+        expectedMap.put(Fields.TILT_ADJUSTMENT, "false");
+        expectedMap.put(Fields.FORWARD_TILT, "15");
+        expectedMap.put(Fields.BACKWARD_TILT, "45");
+        expectedMap.put(Fields.CURVATURE, "true");
+        expectedMap.put(Fields.DISPLAY_AREA, "90.47");
+        expectedMap.put(Fields.PRICE, "$150.40");
         
-        String result = ScyllaProcessor.normalizeFields(validRecordA);
+        String result = ScyllaProcessor.normalizeFields(simpleRecord);
+        
+        ObjectMapper objectMapper = new ObjectMapper();
+        Map<String, String> resultMap = objectMapper.readValue(result, new TypeReference<Map<String,String>>(){});
+        
+        assertEquals(resultMap.size(), expectedMap.size());
+        
+        for (String field : expectedMap.keySet()) {
+            assertEquals(expectedMap.get(field), resultMap.get(field));
+        }
+    }
+    
+    @Test
+    public void testNormalizeComplexFields() throws JsonParseException, JsonMappingException, IOException {
+        Map<String,String> expectedMap = new HashMap<String,String>();
+        expectedMap.put(Fields.CATEGORY,Fields.DISPLAY);
+        expectedMap.put(Fields.BRAND,"Geekbuying");
+        expectedMap.put(Fields.SCREEN_SIZE,"24.3");
+        expectedMap.put(Fields.RESOLUTION,"1920x1200");
+        expectedMap.put(Fields.RESPONSE_TIME,"4");
+        expectedMap.put(Fields.REFRESH_RATE,"144");
+        expectedMap.put(Fields.PANEL_TYPE,"VA");
+        expectedMap.put(Fields.ADAPTIVE_SYNC,"G-Sync");
+        expectedMap.put(Fields.VGA,"1");
+        expectedMap.put(Fields.DVI,"true");
+        expectedMap.put(Fields.HDMI,"3");
+        expectedMap.put(Fields.DISPLAY_PORT,"false");
+        expectedMap.put(Fields.VESA_MOUNT,"100 150");
+        expectedMap.put(Fields.FOUNDTIME,"542143542");
+        expectedMap.put(Fields.URL,"https://www.newegg.ca/Product/Product.aspx?Item=N82E16824236174");
+        expectedMap.put(Fields.MODEL,"PH-55621");
+        expectedMap.put(Fields.ASPECT_RATIO, "25:9");
+        expectedMap.put(Fields.PIXEL_PITCH, "1.5890");
+        expectedMap.put(Fields.PIXEL_DENSITY, "109");
+        expectedMap.put(Fields.BRIGHTNESS, "455.50");
+        expectedMap.put(Fields.REMOVABLE_STAND, "true");
+        expectedMap.put(Fields.HEIGHT_ADJUSTMENT, "110");
+        expectedMap.put(Fields.PORTRAIT_PIVOT, "true");
+        expectedMap.put(Fields.SWIVEL_ADJUSTMENT, "true");
+        expectedMap.put(Fields.LEFT_SWIVEL, "15");
+        expectedMap.put(Fields.RIGHT_SWIVEL, "15");
+        expectedMap.put(Fields.TILT_ADJUSTMENT, "false");
+        expectedMap.put(Fields.FORWARD_TILT, "15");
+        expectedMap.put(Fields.BACKWARD_TILT, "45");
+        expectedMap.put(Fields.CURVATURE, "340");
+        expectedMap.put(Fields.DISPLAY_AREA, "90.47");
+        expectedMap.put(Fields.PRICE, "$150.40");
+        
+        String result = ScyllaProcessor.normalizeFields(complexRecord);
         
         ObjectMapper objectMapper = new ObjectMapper();
         Map<String, String> resultMap = objectMapper.readValue(result, new TypeReference<Map<String,String>>(){});
