@@ -1,10 +1,14 @@
 package transformer;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -23,14 +27,14 @@ public class DisplayTransformer extends Transformer {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode record = objectMapper.readTree(value);
             
-            if (record.get(Fields.URL) == null || record.get(Fields.BRAND) == null || record.get(Fields.MODEL) == null || record.get(Fields.FOUNDTIME) == null) {
-                return false;
+            if (record.get(Fields.URL) != null && record.get(Fields.BRAND) != null && record.get(Fields.MODEL) != null && record.get(Fields.FOUNDTIME) != null) {
+                return true;
             }
         } catch (Exception e) {
             logger.error("An error occured while filtering invalid post: "+value,e);
             return false;
         }
-        return true;
+        return false;
     }
     
     /*
@@ -42,28 +46,28 @@ public class DisplayTransformer extends Transformer {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode record = objectMapper.readTree(value);
             
-            int fieldCount = 4;
-            if (record.get(Fields.SCREEN_SIZE) == null) {
-                fieldCount--;
+            int fieldCount = 0;
+            if (record.get(Fields.SCREEN_SIZE) != null) {
+                fieldCount++;
             }
-            if (record.get(Fields.RESOLUTION) == null) {
-                fieldCount--;
+            if (record.get(Fields.RESOLUTION) != null) {
+                fieldCount++;
             }
-            if (record.get(Fields.RESPONSE_TIME) == null) {
-                fieldCount--;
+            if (record.get(Fields.RESPONSE_TIME) != null) {
+                fieldCount++;
             }
-            if (record.get(Fields.REFRESH_RATE) == null) {
-                fieldCount--;
+            if (record.get(Fields.REFRESH_RATE) != null) {
+                fieldCount++;
             }
             
-            if (fieldCount < 2) {
-                return false;
+            if (fieldCount >= 2) {
+                return true;
             } 
         } catch (Exception e) {
             logger.error("An error occured while filtering invalid normalized post: "+value,e);
             return false;
         }
-        return true;
+        return false;
     }
     
     /*
@@ -71,8 +75,49 @@ public class DisplayTransformer extends Transformer {
      */
     @Override
     public String preProcess(String value) {
-        //TODO explode combined fields
-        return value;
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            Fields fields = new Fields();
+            
+            Map<String,String> values = objectMapper.readValue(value, new TypeReference<HashMap<String,String>>(){});
+            
+            //Expand the aggregated ergonomics field
+            String ergonomics = values.get(Fields.ERGONOMICS);
+            if (ergonomics != null) {
+                Map<String,String> ergonomicAdjustments = fields.getErgonomicAdjustments();
+                values.remove(Fields.ERGONOMICS);
+                
+                String[] ergonomicValues = StringUtils.split(ergonomics, '\n');
+                for (String ergonomicValue : ergonomicValues) {
+                    for (String ergonomicAdjustment : ergonomicAdjustments.keySet()) {
+                        if (StringUtils.contains(ergonomicValue, ergonomicAdjustment)) {
+                            values.put(ergonomicAdjustments.get(ergonomicAdjustment), ergonomicValue);
+                        }
+                    }
+                }
+            }
+            
+            //TODO: add this connector expansion
+            
+            //Expand the aggregated connectors field
+//            String ergonomics = values.get(Fields.ERGONOMICS);
+//            if (ergonomics != null) {
+//                Map<String,String> ergonomicAdjustments = fields.getErgonomicAdjustments();
+//                values.remove(Fields.ERGONOMICS);
+//                
+//                String[] ergonomicValues = StringUtils.split(ergonomics, '\n');
+//                for (String ergonomicValue : ergonomicValues) {
+//                    for (String ergonomicAdjustment : ergonomicAdjustments.keySet()) {
+//                        if (StringUtils.contains(ergonomicValue, ergonomicAdjustment)) {
+//                            values.put(ergonomicAdjustments.get(ergonomicAdjustment), ergonomicValue);
+//                        }
+//                    }
+//                }
+//            }
+        } catch (Exception e) {
+            logger.error("Unexpected error occured while expanding aggregated fields.", e);
+        }
+        return null;
     }
     
     /*
@@ -85,7 +130,7 @@ public class DisplayTransformer extends Transformer {
             Fields fields = new Fields();
             JsonNode record = objectMapper.readTree(value);
             
-            for (Entry<String, List<String>> fieldCategory : fields.CATEGORIZED_FIELDS.entrySet()) {
+            for (Entry<String, List<String>> fieldCategory : fields.getCategorizedFields().entrySet()) {
                 ObjectNode explodedNode = objectMapper.createObjectNode();
                 
                 for (String field : fieldCategory.getValue()) {
