@@ -1,9 +1,13 @@
 package transformer;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
@@ -76,6 +80,7 @@ public class DisplayTransformer extends Transformer {
     @Override
     public String preProcess(String value) {
         try {
+        	Matcher patternMatcher;
             ObjectMapper objectMapper = new ObjectMapper();
             Fields fields = new Fields();
             
@@ -90,30 +95,35 @@ public class DisplayTransformer extends Transformer {
                 String[] ergonomicValues = StringUtils.split(ergonomics, '\n');
                 for (String ergonomicValue : ergonomicValues) {
                     for (String ergonomicAdjustment : ergonomicAdjustments.keySet()) {
-                        if (StringUtils.contains(ergonomicValue, ergonomicAdjustment)) {
+                    patternMatcher = Pattern.compile("(?i)"+ergonomicAdjustment).matcher(ergonomicValue);
+                        if (patternMatcher.find()) {
                             values.put(ergonomicAdjustments.get(ergonomicAdjustment), ergonomicValue);
                         }
                     }
                 }
             }
             
-            //TODO: add this connector expansion
-            
             //Expand the aggregated connectors field
-//            String ergonomics = values.get(Fields.ERGONOMICS);
-//            if (ergonomics != null) {
-//                Map<String,String> ergonomicAdjustments = fields.getErgonomicAdjustments();
-//                values.remove(Fields.ERGONOMICS);
-//                
-//                String[] ergonomicValues = StringUtils.split(ergonomics, '\n');
-//                for (String ergonomicValue : ergonomicValues) {
-//                    for (String ergonomicAdjustment : ergonomicAdjustments.keySet()) {
-//                        if (StringUtils.contains(ergonomicValue, ergonomicAdjustment)) {
-//                            values.put(ergonomicAdjustments.get(ergonomicAdjustment), ergonomicValue);
-//                        }
-//                    }
-//                }
-//            }
+            String connectors = values.get(Fields.CONNECTORS);
+            if (connectors != null) {
+                Map<String,String> connectorTypes = fields.getConnectorTypes();
+                values.remove(Fields.CONNECTORS);
+                
+                String[] connectorRows = StringUtils.split(connectors, '\n');
+                List<String> connectorValues = new ArrayList<String>();
+                for (String connectorRow : connectorRows) {
+                    connectorValues.addAll(Arrays.asList(StringUtils.split(connectorRow,',')));
+                }
+                
+                for (String connectorValue : connectorValues) {
+                    for (String connectorType : connectorTypes.keySet()) {
+                        patternMatcher = Pattern.compile("(?i)"+connectorType).matcher(connectorValue);
+                        if (patternMatcher.find()) {
+                            values.put(connectorTypes.get(connectorType), connectorValue);
+                        }
+                    }
+                }
+            }
         } catch (Exception e) {
             logger.error("Unexpected error occured while expanding aggregated fields.", e);
         }

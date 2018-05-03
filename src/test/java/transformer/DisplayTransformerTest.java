@@ -8,24 +8,29 @@ import org.junit.jupiter.api.Test;
 
 public class DisplayTransformerTest {
     
-    private String simpleRecord = "{\"Category\":\"Display\",\"Brand\":\"mimo\",\"ScreenSize\":\"27\\\"\","
+    private String simpleUnProcessedRecord = "{\"Category\":\"Display\",\"Brand\":\"mimo\",\"ScreenSize\":\"27\\\"\","
+            + "\"Resolution\":\"1600 x 1200\",\"ResponseTime\":\"14ms\",\"RefreshRate\":\"144 hertz\","
+            + "\"Connectors\":\"1 x dvi\n1 x displayport 1.2\n2 x d-sub\n3 x hdmi 2.0\",\"Ergonomics\":"
+            + "\"}";
+    
+    private String simplePreProcessedRecord = "{\"Category\":\"Display\",\"Brand\":\"mimo\",\"ScreenSize\":\"27\\\"\","
             + "\"Resolution\":\"1600 x 1200\",\"ResponseTime\":\"14ms\",\"RefreshRate\":\"144 hertz\","
             + "\"PanelType\":\"mva\",\"AdaptiveSync\":\"AMD Free-Sync\",\"VGA\":\"1\",\"DVI\":\"yes\","
             + "\"HDMI\":\"3\",\"DisplayPort\":\"no\",\"VesaMount\":\"yes\",\"FoundTime\":\"542143542\","
             + "\"URL\":\"https://www.newegg.ca/Product/Product.aspx?Item=N82E16824236174\",\"ModelNumber\":\"PH-55621\","
             + "\"AspectRatio\":\"16:9\",\"PixelPitch\":\"~0.233mm,0.0233cm,~0.0008ft\",\"PixelDensity\":\"109ppi,42ppcm\","
-            + "\"Brightness\":\"400cd/m2\",\"RemovableStand\":\"yes\",\"HeightAdjustment\":\"no\",\"PortraitPivot\":\"yes\","
+            + "\"Brightness\":\"400cd/m2\",\"RemovableStand\":\"yes\",\"HeightAdjustment\":\"no\",\"PivotAdjustment\":\"yes\","
             + "\"SwivelAdjustment\":\"yes\",\"LeftSwivel\":\"-15 degrees\",\"RightSwivel\":\"+15 degrees\","
             + "\"TiltAdjustment\":\"no\",\"ForwardTilt\":\"15*\",\"BackwardTilt\":\"45deg\",\"Curvature\":\"curved\","
             + "\"DisplayArea\":\"90.47%\",\"Price\":\"$150.40\"}";
     
-    private String complexRecord = "{\"Category\":\"Display\",\"Brand\":\"geek buying\",\"ScreenSize\":\"24.3 inches\","
+    private String complexPreProcessedRecord = "{\"Category\":\"Display\",\"Brand\":\"geek buying\",\"ScreenSize\":\"24.3 inches\","
             + "\"Resolution\":\"1920 x 1200\",\"ResponseTime\":\"4 ms\",\"RefreshRate\":\"80 hz - 144 hz\","
             + "\"PanelType\":\"va\",\"AdaptiveSync\":\"G sync\",\"VGA\":\"1\",\"DVI\":\"yes\","
             + "\"HDMI\":\"3\",\"DisplayPort\":\"no\",\"VesaMount\":\"yes 100mm x 150mm\",\"FoundTime\":\"542143542\","
             + "\"URL\":\"https://www.newegg.ca/Product/Product.aspx?Item=N82E16824236174\",\"ModelNumber\":\"PH-55621\","
             + "\"AspectRatio\":\"25:9\",\"PixelPitch\":\"~1.5890mm,0.0233cm,~0.0008ft\",\"PixelDensity\":\"109ppi,42ppcm\","
-            + "\"Brightness\":\"455.50cd/m2\",\"RemovableStand\":\"yes\",\"HeightAdjustment\":\"true ~110mm,200cm,~5m\",\"PortraitPivot\":\"yes\","
+            + "\"Brightness\":\"455.50cd/m2\",\"RemovableStand\":\"yes\",\"HeightAdjustment\":\"true ~110mm,200cm,~5m\",\"PivotAdjustment\":\"yes\","
             + "\"SwivelAdjustment\":\"yes\",\"LeftSwivel\":\"-15 degrees\",\"RightSwivel\":\"+15 degrees\","
             + "\"TiltAdjustment\":\"no\",\"ForwardTilt\":\"15*\",\"BackwardTilt\":\"45deg\",\"Curvature\":\"340cm\","
             + "\"DisplayArea\":\"90.47%\",\"Price\":\"$150.40\"}";
@@ -60,7 +65,7 @@ public class DisplayTransformerTest {
         
         DisplayTransformer displayTransformer = new DisplayTransformer();
         
-        assertTrue(displayTransformer.preValidate(simpleRecord));
+        assertTrue(displayTransformer.preValidate(simplePreProcessedRecord));
         assertFalse(displayTransformer.preValidate(invalidRecordA));
         assertFalse(displayTransformer.preValidate(invalidRecordB));
         assertFalse(displayTransformer.preValidate(invalidRecordC));
@@ -96,7 +101,7 @@ public class DisplayTransformerTest {
         String invalidRecordC = "{\"Category\":\"Monitor\",\"FoundEpoch\":\"45629034585\","
                 + "\"URL\":\"https://www.newegg.ca/Product/Product.aspx?Item=N82E16824236174\","
                 + "\"Brand\":\"Acer\",\"ModelNumber\":\"PH-55621\",\"Price\":\"$150.40\","
-                + "\"PanelType\":\"IPS panel\",\"\"<-INVALIDQUOTE-ResponseTime\":\"5ms\",\"VGA\":\"2\"," 
+                + "\"PanelType\":\"IPS panel\",\"ResponseTime\":\"5ms\",\"VGA\":\"2\"," 
                 + "\"DVI\":\"yes\",\"HDMI\":\"no\",\"DisplayPort\":\"yes, 2\",\"AdaptiveSync\":\"NVIDIA G-Sync supported\","
                 + "\"VesaMount\":\"100mm x 100mm\"}";
         
@@ -110,7 +115,7 @@ public class DisplayTransformerTest {
         
         DisplayTransformer displayTransformer = new DisplayTransformer();
         
-        assertTrue(displayTransformer.postValidate(simpleRecord));
+        assertTrue(displayTransformer.postValidate(simplePreProcessedRecord));
         assertTrue(displayTransformer.postValidate(validRecordA));
         assertFalse(displayTransformer.postValidate(invalidRecordA));
         assertFalse(displayTransformer.postValidate(invalidRecordB));
@@ -119,11 +124,16 @@ public class DisplayTransformerTest {
     }
     
     @Test
+    public void testPreProcess() {
+        DisplayTransformer displayTransformer = new DisplayTransformer();
+    }
+    
+    @Test
     public void testPostProcess() {
         DisplayTransformer displayTransformer = new DisplayTransformer();
         
-        String simpleResult = displayTransformer.postProcess(simpleRecord);
-        String complexResult = displayTransformer.postProcess(complexRecord);
+        String simpleResult = displayTransformer.postProcess(simplePreProcessedRecord);
+        String complexResult = displayTransformer.postProcess(complexPreProcessedRecord);
         
         assertEquals(simpleResult,"{\"Category\":\"Display\",\"Brand\":\"mimo\",\"ScreenSize\":\"27\\\"\","
                 + "\"Resolution\":\"1600 x 1200\",\"ResponseTime\":\"14ms\",\"RefreshRate\":\"144 hertz\","
@@ -132,7 +142,7 @@ public class DisplayTransformerTest {
                 + "\"AspectRatio\":\"16:9\",\"PixelPitch\":\"~0.233mm,0.0233cm,~0.0008ft\",\"PixelDensity\":\"109ppi,42ppcm\","
                 + "\"Brightness\":\"400cd/m2\",\"Curvature\":\"curved\",\"DisplayArea\":\"90.47%\",\"Price\":\"$150.40\","
                 + "\"Ergonomics\":{\"VesaMount\":\"yes\",\"RemovableStand\":\"yes\",\"HeightAdjustment\":\"no\","
-                + "\"PortraitPivot\":\"yes\",\"SwivelAdjustment\":\"yes\",\"TiltAdjustment\":\"no\",\"ForwardTilt\":\"15*\","
+                + "\"PivotAdjustment\":\"yes\",\"SwivelAdjustment\":\"yes\",\"TiltAdjustment\":\"no\",\"ForwardTilt\":\"15*\","
                 + "\"BackwardTilt\":\"45deg\",\"LeftSwivel\":\"-15 degrees\",\"RightSwivel\":\"+15 degrees\"},"
                 + "\"Connectivity\":{\"VGA\":\"1\",\"DVI\":\"yes\",\"HDMI\":\"3\",\"DisplayPort\":\"no\"}}");
         
@@ -143,7 +153,7 @@ public class DisplayTransformerTest {
                 + "\"AspectRatio\":\"25:9\",\"PixelPitch\":\"~1.5890mm,0.0233cm,~0.0008ft\",\"PixelDensity\":\"109ppi,42ppcm\","
                 + "\"Brightness\":\"455.50cd/m2\",\"Curvature\":\"340cm\",\"DisplayArea\":\"90.47%\",\"Price\":\"$150.40\","
                 + "\"Ergonomics\":{\"VesaMount\":\"yes 100mm x 150mm\",\"RemovableStand\":\"yes\","
-                + "\"HeightAdjustment\":\"true ~110mm,200cm,~5m\",\"PortraitPivot\":\"yes\",\"SwivelAdjustment\":\"yes\","
+                + "\"HeightAdjustment\":\"true ~110mm,200cm,~5m\",\"PivotAdjustment\":\"yes\",\"SwivelAdjustment\":\"yes\","
                 + "\"TiltAdjustment\":\"no\",\"ForwardTilt\":\"15*\",\"BackwardTilt\":\"45deg\",\"LeftSwivel\":\"-15 degrees\","
                 + "\"RightSwivel\":\"+15 degrees\"},\"Connectivity\":{\"VGA\":\"1\",\"DVI\":\"yes\",\"HDMI\":\"3\",\"DisplayPort\":\"no\"}}");
     }

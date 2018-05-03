@@ -22,7 +22,7 @@ public class TransformerTest {
             + "\"HDMI\":\"3\",\"DisplayPort\":\"no\",\"VesaMount\":\"yes\",\"FoundTime\":\"542143542\","
             + "\"URL\":\"https://www.newegg.ca/Product/Product.aspx?Item=N82E16824236174\",\"ModelNumber\":\"PH-55621\","
             + "\"AspectRatio\":\"16:9\",\"PixelPitch\":\"~0.233mm,0.0233cm,~0.0008ft\",\"PixelDensity\":\"109ppi,42ppcm\","
-            + "\"Brightness\":\"400cd/m2\",\"RemovableStand\":\"yes\",\"HeightAdjustment\":\"no\",\"PortraitPivot\":\"yes\","
+            + "\"Brightness\":\"400cd/m2\",\"RemovableStand\":\"yes\",\"HeightAdjustment\":\"no\",\"PivotAdjustment\":\"yes\","
             + "\"SwivelAdjustment\":\"yes\",\"LeftSwivel\":\"-15 degrees\",\"RightSwivel\":\"+15 degrees\","
             + "\"TiltAdjustment\":\"no\",\"ForwardTilt\":\"15*\",\"BackwardTilt\":\"45deg\",\"Curvature\":\"curved\","
             + "\"DisplayArea\":\"90.47%\",\"Price\":\"$150.40\"}";
@@ -33,7 +33,7 @@ public class TransformerTest {
             + "\"HDMI\":\"3\",\"DisplayPort\":\"no\",\"VesaMount\":\"yes 100mm x 150mm\",\"FoundTime\":\"542143542\","
             + "\"URL\":\"https://www.newegg.ca/Product/Product.aspx?Item=N82E16824236174\",\"ModelNumber\":\"PH-55621\","
             + "\"AspectRatio\":\"25:9\",\"PixelPitch\":\"~1.5890mm,0.0233cm,~0.0008ft\",\"PixelDensity\":\"109ppi,42ppcm\","
-            + "\"Brightness\":\"455.50cd/m2\",\"RemovableStand\":\"yes\",\"HeightAdjustment\":\"true ~110mm,200cm,~5m\",\"PortraitPivot\":\"yes\","
+            + "\"Brightness\":\"455.50cd/m2\",\"RemovableStand\":\"yes\",\"HeightAdjustment\":\"true ~110mm,200cm,~5m\",\"PivotAdjustment\":\"yes\","
             + "\"SwivelAdjustment\":\"yes\",\"LeftSwivel\":\"-15 degrees\",\"RightSwivel\":\"+15 degrees\","
             + "\"TiltAdjustment\":\"no\",\"ForwardTilt\":\"15*\",\"BackwardTilt\":\"45deg\",\"Curvature\":\"340cm\","
             + "\"DisplayArea\":\"90.47%\",\"Price\":\"$150.40\"}";
@@ -73,7 +73,7 @@ public class TransformerTest {
         expected.put(Fields.BRIGHTNESS, "400");
         expected.put(Fields.REMOVABLE_STAND, "true");
         expected.put(Fields.HEIGHT_ADJUSTMENT, "false");
-        expected.put(Fields.PORTRAIT_PIVOT, "true");
+        expected.put(Fields.PIVOT_ADJUSTMENT, "true");
         expected.put(Fields.SWIVEL_ADJUSTMENT, "true");
         expected.put(Fields.LEFT_SWIVEL, "15");
         expected.put(Fields.RIGHT_SWIVEL, "15");
@@ -121,7 +121,7 @@ public class TransformerTest {
         expected.put(Fields.BRIGHTNESS, "455.50");
         expected.put(Fields.REMOVABLE_STAND, "true");
         expected.put(Fields.HEIGHT_ADJUSTMENT, "110");
-        expected.put(Fields.PORTRAIT_PIVOT, "true");
+        expected.put(Fields.PIVOT_ADJUSTMENT, "true");
         expected.put(Fields.SWIVEL_ADJUSTMENT, "true");
         expected.put(Fields.LEFT_SWIVEL, "15");
         expected.put(Fields.RIGHT_SWIVEL, "15");
