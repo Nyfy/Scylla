@@ -52,8 +52,7 @@ public class ScyllaProcessor {
         
         KStream<String, String>[] displaysPreValidated = builder
                 .stream(KafkaConfig.DISPLAY_SOURCE_TOPIC, Consumed.with(Serdes.String(), Serdes.String()))
-                .branch( (key, value) -> displayTransformer.preValidate(value),
-                        (key, value) -> true);
+                .branch( (key, value) -> displayTransformer.preValidate(value), (key, value) -> true);
         
         KStream<String, String> displaysPreProcessed = displaysPreValidated[0]
                 .map( (key, value) -> displayTransformer.generateKey(key, value))

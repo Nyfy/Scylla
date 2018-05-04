@@ -8,10 +8,10 @@ import org.junit.jupiter.api.Test;
 
 public class DisplayTransformerTest {
     
-    private String simpleUnProcessedRecord = "{\"Category\":\"Display\",\"Brand\":\"mimo\",\"ScreenSize\":\"27\\\"\","
+    private String simpleRawRecord = "{\"Category\":\"Display\",\"Brand\":\"mimo\",\"ScreenSize\":\"27\\\"\","
             + "\"Resolution\":\"1600 x 1200\",\"ResponseTime\":\"14ms\",\"RefreshRate\":\"144 hertz\","
-            + "\"Connectors\":\"1 x dvi\n1 x displayport 1.2\n2 x d-sub\n3 x hdmi 2.0\",\"Ergonomics\":"
-            + "\"}";
+            + "\"Connectors\":\"1 x dvi\\n1 x displayport 1.2\\n2 x d-sub\\n3 x hdmi 2.0\",\"Ergonomics\":"
+            + "\"height-adjustable stand: 130mm\\ntilt\\nswivel\\npivot\"}";
     
     private String simplePreProcessedRecord = "{\"Category\":\"Display\",\"Brand\":\"mimo\",\"ScreenSize\":\"27\\\"\","
             + "\"Resolution\":\"1600 x 1200\",\"ResponseTime\":\"14ms\",\"RefreshRate\":\"144 hertz\","
@@ -65,7 +65,7 @@ public class DisplayTransformerTest {
         
         DisplayTransformer displayTransformer = new DisplayTransformer();
         
-        assertTrue(displayTransformer.preValidate(simplePreProcessedRecord));
+        assertTrue(displayTransformer.preValidate(simpleRawRecord));
         assertFalse(displayTransformer.preValidate(invalidRecordA));
         assertFalse(displayTransformer.preValidate(invalidRecordB));
         assertFalse(displayTransformer.preValidate(invalidRecordC));
@@ -125,17 +125,22 @@ public class DisplayTransformerTest {
     
     @Test
     public void testPreProcess() {
+        String expected = "{\"Category\":\"Display\",\"Brand\":\"mimo\",\"ScreenSize\":\"27\\\"\","
+                + "\"Resolution\":\"1600 x 1200\",\"ResponseTime\":\"14ms\",\"RefreshRate\":\"144 hertz\","
+                + "\"DVI\":\"1 x dvi\",\"DisplayPort\":\"1 x displayport 1.2\",\"VGA\":\"2 x d-sub\",\"HDMI\":\"3 x hdmi 2.0\","
+                + "\"HeightAdjustment\":\"height-adjustable stand: 130mm\",\"TiltAdjustment\":\"tilt\",\"SwivelAdjustment\":\"swivel\","
+                + "\"PivotAdjustment\":\"pivot\"}";
+        
         DisplayTransformer displayTransformer = new DisplayTransformer();
+        
+        String actual = displayTransformer.preProcess(simpleRawRecord);
+        
+        assertEquals(expected, actual);
     }
     
     @Test
     public void testPostProcess() {
-        DisplayTransformer displayTransformer = new DisplayTransformer();
-        
-        String simpleResult = displayTransformer.postProcess(simplePreProcessedRecord);
-        String complexResult = displayTransformer.postProcess(complexPreProcessedRecord);
-        
-        assertEquals(simpleResult,"{\"Category\":\"Display\",\"Brand\":\"mimo\",\"ScreenSize\":\"27\\\"\","
+        String expectedSimple = "{\"Category\":\"Display\",\"Brand\":\"mimo\",\"ScreenSize\":\"27\\\"\","
                 + "\"Resolution\":\"1600 x 1200\",\"ResponseTime\":\"14ms\",\"RefreshRate\":\"144 hertz\","
                 + "\"PanelType\":\"mva\",\"AdaptiveSync\":\"AMD Free-Sync\",\"FoundTime\":\"542143542\","
                 + "\"URL\":\"https://www.newegg.ca/Product/Product.aspx?Item=N82E16824236174\",\"ModelNumber\":\"PH-55621\","
@@ -144,9 +149,9 @@ public class DisplayTransformerTest {
                 + "\"Ergonomics\":{\"VesaMount\":\"yes\",\"RemovableStand\":\"yes\",\"HeightAdjustment\":\"no\","
                 + "\"PivotAdjustment\":\"yes\",\"SwivelAdjustment\":\"yes\",\"TiltAdjustment\":\"no\",\"ForwardTilt\":\"15*\","
                 + "\"BackwardTilt\":\"45deg\",\"LeftSwivel\":\"-15 degrees\",\"RightSwivel\":\"+15 degrees\"},"
-                + "\"Connectivity\":{\"VGA\":\"1\",\"DVI\":\"yes\",\"HDMI\":\"3\",\"DisplayPort\":\"no\"}}");
+                + "\"Connectivity\":{\"VGA\":\"1\",\"DVI\":\"yes\",\"HDMI\":\"3\",\"DisplayPort\":\"no\"}}";
         
-        assertEquals(complexResult,"{\"Category\":\"Display\",\"Brand\":\"geek buying\",\"ScreenSize\":\"24.3 inches\","
+        String expectedComplex = "{\"Category\":\"Display\",\"Brand\":\"geek buying\",\"ScreenSize\":\"24.3 inches\","
                 + "\"Resolution\":\"1920 x 1200\",\"ResponseTime\":\"4 ms\",\"RefreshRate\":\"80 hz - 144 hz\","
                 + "\"PanelType\":\"va\",\"AdaptiveSync\":\"G sync\",\"FoundTime\":\"542143542\","
                 + "\"URL\":\"https://www.newegg.ca/Product/Product.aspx?Item=N82E16824236174\",\"ModelNumber\":\"PH-55621\","
@@ -155,7 +160,16 @@ public class DisplayTransformerTest {
                 + "\"Ergonomics\":{\"VesaMount\":\"yes 100mm x 150mm\",\"RemovableStand\":\"yes\","
                 + "\"HeightAdjustment\":\"true ~110mm,200cm,~5m\",\"PivotAdjustment\":\"yes\",\"SwivelAdjustment\":\"yes\","
                 + "\"TiltAdjustment\":\"no\",\"ForwardTilt\":\"15*\",\"BackwardTilt\":\"45deg\",\"LeftSwivel\":\"-15 degrees\","
-                + "\"RightSwivel\":\"+15 degrees\"},\"Connectivity\":{\"VGA\":\"1\",\"DVI\":\"yes\",\"HDMI\":\"3\",\"DisplayPort\":\"no\"}}");
+                + "\"RightSwivel\":\"+15 degrees\"},\"Connectivity\":{\"VGA\":\"1\",\"DVI\":\"yes\",\"HDMI\":\"3\",\"DisplayPort\":\"no\"}}";
+        
+        DisplayTransformer displayTransformer = new DisplayTransformer();
+        
+        String resultSimple = displayTransformer.postProcess(simplePreProcessedRecord);
+        String resultComplex = displayTransformer.postProcess(complexPreProcessedRecord);
+        
+        assertEquals(expectedSimple, resultSimple);
+        
+        assertEquals(expectedComplex, resultComplex);
     }
 
 }

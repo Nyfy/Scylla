@@ -75,12 +75,12 @@ public class DisplayTransformer extends Transformer {
     }
     
     /*
-     * Here we expand aggregated fields in preparation to normalize them individually
+     * Here we expand aggregated fields in preparation to normalize them
      */
     @Override
     public String preProcess(String value) {
         try {
-        	Matcher patternMatcher;
+            Matcher patternMatcher;
             ObjectMapper objectMapper = new ObjectMapper();
             Fields fields = new Fields();
             
@@ -124,6 +124,7 @@ public class DisplayTransformer extends Transformer {
                     }
                 }
             }
+            return objectMapper.writeValueAsString(values);
         } catch (Exception e) {
             logger.error("Unexpected error occured while expanding aggregated fields.", e);
         }
