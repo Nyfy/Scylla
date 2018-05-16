@@ -6,16 +6,15 @@ and television specifications into normalized, validated and restructured values
 containing raw data, into a sink topic containing only processed data for independant services to consume.
 
 The Kafka Streams library was chosen as it provides a simple domain-specific language (DSL) for defining a topology of 
-subsequent operations. Kafka Streams Processors are also inherently vertically and horizontally scalable, due to
+subsequent operations. Kafka Streams Processors are also vertically and horizontally scalable, due to
 Apache Kafka's inherent design.
 
 Scylla is currently a work in progress, as additional operations and improvements still being developed. However, older
-versions have been completely tested successfully.
+versions have been completely tested functionally.
 
 ## Example Data
-TODO: Add example data for observation
 
 ## Implementation Notes
-The base structure of the processing topology is defined in the main controller class, with specific operations implemented
+-The base structure of the processing topology is defined in the main controller class, with specific operations implemented
 within extendable "Transformer" classes providing abstract functions for pre-validating, pre-processing, post-processing and
 post-validating data.
