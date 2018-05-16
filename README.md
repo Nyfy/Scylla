@@ -11,8 +11,6 @@ Apache Kafka's inherent design.
 Scylla is currently a work in progress, as additional operations and improvements still being developed. However, older
 versions have been completely tested functionally.
 
-## Example Data
-
 ## Implementation Notes
 -The base structure of the processing topology is defined in the main controller class, with specific operations implemented
 within extendable "Transformer" classes providing abstract functions for pre-validating, pre-processing, post-processing and
