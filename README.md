@@ -1,5 +1,4 @@
 # Scylla
-(Work In Progress)\n
 The goal of the Scylla project is to create a Kafka Stream Processor to process, normalize, restructure 
 and validate streamed JSON data prior to database storage. The current implementation specifically processes scraped monitor
 and television specifications into normalized, validated and restructured values. Scylla processes data from a source topic
